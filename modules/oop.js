@@ -8,7 +8,7 @@ define(function (require, exports, module) {
             name;
         if (parent.superclass) {
             for (name in parent) {
-                if (parent.hasOwnProperty(name) && fnTest.test(parent[name])) {
+                if (typeof parent[name] === 'function' && fnTest.test(parent[name])) {
                     fackParent[name] = (function (name, fn) {
                         return function () {
                             var bak = this.superclass[name], res;
@@ -27,7 +27,7 @@ define(function (require, exports, module) {
         }
         tempCtor.prototype = parent;
         childCtor.prototype = new tempCtor();
-        childCtor.prototype.superclass = parentCtor.prototype;
+        childCtor.prototype.superclass = parent;
         childCtor.prototype.constructor = childCtor;
     };
 
