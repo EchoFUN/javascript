@@ -18,11 +18,11 @@ require(['oop'], function (o) {
 
     var Programmer = o.Class(Person, {
         init: function (name, sex) {
-            this.superclass.init.apply(this, arguments);
+            this.$super(name, sex);
             console.log('Programmer init');
         },
         speak: function () {
-            this.superclass.speak.call(this);
+            this.$super(this);
             console.log('Programmer is alone.');
         },
         program: function () {
@@ -32,11 +32,11 @@ require(['oop'], function (o) {
 
     var FrontendEngineers = o.Class(Programmer, {
         init: function (name, sex) {
-            this.superclass.init.apply(this, arguments);
+            this.$super(this, arguments);
             console.log('FrontendEngineers init');
         },
         speak: function () {
-            this.superclass.speak.call(this);
+            this.$super(this);
             console.log('Google is God');
         }
     });
@@ -52,9 +52,9 @@ require(['oop'], function (o) {
         }
     });
 
-
+    //new Programmer('jack', 'male');
     new FrontendEngineers().speak();
-    new SoftwareEnginee().speak();
+    //new SoftwareEnginee().speak();
 
 });
 

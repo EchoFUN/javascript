@@ -61,4 +61,50 @@ define(function (require, exports, module) {
         Class.prototype.constructor = Class;
         return Class;
     };
+
+    exports.Class = function (parent, interface, props) {
+        var Class = function () {
+                this.init.apply(this, arguments);
+            },
+            fnTest = /\$super\b/,
+            tempCtor = function(){},
+            name,
+            i;
+        props = arguments[arguments.length - 1];
+        if (typeof parent === 'function') {
+            props = arguments[arguments.length - 1];
+            Class.prototype = new tempCtor();
+            tempCtor.prototype = parent.prototype;
+            for (name in props) {
+                if (typeof props[name] === 'function' && fnTest.test(props[name])) {
+                    Class.prototype[name] = (function (name, fn, fnSuper) {
+                        return function () {
+                            var bak = this.$super, res;
+                            this.$super = fnSuper;
+                            res = fn.apply(this, arguments);
+                            this.$super = bak;
+                            return res;
+                        };
+                    })(name, props[name], parent.prototype[name]);
+                }
+                else {
+                    Class.prototype[name] = props[name];
+                }
+            }
+            Class.prototype.$super = parent.prototype;
+            interface = Array.prototype.slice.call(arguments, 1, -1);
+        }
+        else {
+            Class.prototype = props;
+            interface = Array.prototype.slice.call(arguments, 0, -1);
+        }
+        for (i = 0, name ; i < interface.length ; i += 1) {
+            for (name in interface[i]) {
+                Class.prototype[name] = interface[i][name];
+            }
+        }
+        Class.prototype.constructor = Class;
+        return Class;
+    };
 });
+'西夏红'
