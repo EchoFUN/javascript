@@ -1,26 +1,18 @@
 (function () {
 
-    var config = {
-        rootDIR: 'mall/common/js/',
-        rootPath: 'http://s.xnimg.cn/'
-    },
-
-    modsLoaded = [],
+var modsLoaded = [],
 
     modsDeferred = {},
 
-    //script元素管理
-    scriptPool = {},
+    path = '',
 
-    //存放加载的模块和版本号
-    modules = {},
+    versions = {},
 
-    //存放类和类的内容
-    classes = {},
+    exports = {},
 
     loadJS = function (mod, fn) {
-        var file = config.rootPath + (modules[mod] ? modules[mod] + '/' : '') + config.rootDIR + mod + '.js'
-        if (scriptPool[file]) {
+        var file = path.replace('{{NAME}}', mod).replace('/{{VERSION}}', versions[mod] ? '/' + versions[mod] : '');
+        if (exports[mod]) {
             fn(true);
         }
         else {
@@ -32,7 +24,6 @@
                 try {
                     tag.parentNode.removeChild(tag);
                     tag = null;
-                    scriptPool[file] = true;
                 }
                 catch (ex) {}
                 fn();
@@ -45,6 +36,11 @@
     window.JMC = {
 
         debug: false,
+
+        config: function (opt) {
+            path = opt.path || 'http://s.xnimg.cn/{{VERSION}}/mall/common/js/{{NAME}}.js';
+            versions = opt.versions || {};
+        },
 
         Class: function () {
             var Class = function () {
@@ -118,13 +114,17 @@
                 name = null;
             }
 
-            if (depends.length) {
+            for (var i = 0, filter = [] ; i < depends.length ; i += 1) {
+                if (!exports[depends[i]]) {filter.push(depends[i]);}
+            }
+
+            if (filter.length) {
                 var self = this, nickname = +new Date();
                 modsLoaded.push(nickname);
                 this.use(depends.join(','), function () {
-                    for (var key in classes) {
-                        if (classes[key] === nickname) {
-                            classes[key] = fn();
+                    for (var key in exports) {
+                        if (exports[key] === nickname) {
+                            exports[key] = fn.apply(window, arguments);
                             for (var i in modsDeferred) {
                                 if (i == nickname) {
                                     modsDeferred[i]();
@@ -146,17 +146,15 @@
                 modsDeferredCounter = 0,
                 rNickname = /^\d+$/,
                 run = function () {
-                    if (modsDeferredCounter === 0 && counter === mods.length && typeof fn === 'function') {
-                        try {
-                            var modules = [];
-                            for (var i = 0; i < mods.length ; i += 1) {
-                                modules.push(classes[mods[i]]);
-                            }
-                            fn.apply(window, modules);
+                    try {
+                        var modules = [];
+                        for (var i = 0; i < mods.length ; i += 1) {
+                            modules.push(exports[mods[i]]);
                         }
-                        catch (ex) {
-                            if (JMC.debug) { throw ex; }
-                        }
+                        fn.apply(window, modules);
+                    }
+                    catch (ex) {
+                        if (JMC.debug) { throw ex; }
                     }
                 };
 
@@ -169,31 +167,21 @@
                     loadJS(mod, function (hasLoaded) {
                         counter += 1;
                         if (!hasLoaded) {
-                            var exports = modsLoaded.shift();
-                            classes[mod] = exports;
-                            if (rNickname.test(exports)) {
+                            var ex = modsLoaded.shift();
+                            exports[mod] = ex || {};
+                            if (rNickname.test(ex)) {
                                 modsDeferredCounter += 1;
-                                modsDeferred[exports] = function () {
+                                modsDeferred[ex] = function () {
                                     modsDeferredCounter -= 1;
                                     run();
                                 };
                             }
                         }
-                        run();
+                        if (modsDeferredCounter === 0 && counter === mods.length && typeof fn === 'function') {
+                            run();
+                        }
                     });
                 }(mods[i]));
-            }
-        },
-
-        getVersion: function (path) {
-            for (var i = 0, len = path.length; i < len; i += 1) {
-                var info = path[i].split('/'),
-                mod = info[info.length - 1].split('.')[0],
-                version = false;
-                if (/\w\d\d\d\d\d/.test(info[3])) {
-                    version = info[3];
-                }
-                modules[mod] = version;
             }
         }
 
